@@ -112,6 +112,7 @@ class MLUtil:
         future_day = self.test_size
         learning_rate = 0.01
 
+        tf.reset_default_graph()
         modelnn = Lstm(
             learning_rate,
             num_layers,
@@ -120,16 +121,13 @@ class MLUtil:
             self.df_log.shape[1],
             dropout_rate,
         )
+        sess = tf.InteractiveSession()
+        sess.run(tf.global_variables_initializer())
+        date_ori = pd.to_datetime(self.df.iloc[:, 0]).tolist()
 
-        df = self.df
         df_train = self.df_train
         test_size = self.test_size
         minmax = self.minmax
-
-        tf.reset_default_graph()
-        sess = tf.InteractiveSession()
-        sess.run(tf.global_variables_initializer())
-        date_ori = pd.to_datetime(df.iloc[:, 0]).tolist()
 
         pbar = tqdm(range(epoch), desc="train loop")
         for i in pbar:
@@ -213,6 +211,23 @@ class MLUtil:
         for i in range(self.simulation_size):
             logger.info("simulation %d" % (i + 1))
             results.append(self.train_lstm())
+
+        accuracies = [
+            self.calculate_accuracy(self.df["Close"].iloc[-self.test_size :].values, r)
+            for r in results
+        ]
+
+        plt.figure(figsize=(15, 5))
+        for no, r in enumerate(results):
+            plt.plot(r, label="forecast %d" % (no + 1))
+        plt.plot(
+            self.df["Close"].iloc[-self.test_size :].values,
+            label="true trend",
+            c="black",
+        )
+        plt.legend()
+        plt.title("average accuracy: %.4f" % (np.mean(accuracies)))
+        plt.show()
 
 
 if __name__ == "__main__":
