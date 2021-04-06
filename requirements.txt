@@ -1,0 +1,8 @@
+# python3.7
+tensorflow==1.15
+numpy
+matplotlib
+seaborn
+pandas
+sklearn
+tqdm
