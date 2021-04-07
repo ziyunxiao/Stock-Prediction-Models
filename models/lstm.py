@@ -61,10 +61,10 @@ class MLUtil:
         #     warnings.simplefilter('ignore')
 
         # default settings
-        self.test_size = 30
-        self.simulation_size = 10
+        # self.test_size = 30
+        # self.simulation_size = 10
 
-    def load_data(self, filename) -> None:
+    def load_data(self, filename, test_size=30, simulation_size=10) -> None:
         df = pd.read_csv(filename)
         logger.info(df.head())
 
@@ -78,11 +78,9 @@ class MLUtil:
         self.df_log = df_log
         self.minmax = minmax
 
-        self.split_dataset(self.test_size, self.simulation_size)
+        self.split_dataset(test_size, simulation_size)
 
-    def split_dataset(self, test_size=30, simulation_size=10):
-        self.test_size = test_size
-        self.simulation_size = simulation_size
+    def split_dataset(self, test_size, simulation_size):
 
         self.df_train = self.df_log.iloc[:-test_size]
         self.df_test = self.df_log.iloc[-test_size:]
@@ -103,13 +101,13 @@ class MLUtil:
             last = smoothed_val
         return buffer
 
-    def train_lstm(self):
+    def train_lstm(self, test_size):
         num_layers = 1
         size_layer = 128
         timestamp = 5
         epoch = 300
         dropout_rate = 0.8
-        future_day = self.test_size
+        future_day = test_size
         learning_rate = 0.01
 
         tf.reset_default_graph()
@@ -126,7 +124,6 @@ class MLUtil:
         date_ori = pd.to_datetime(self.df.iloc[:, 0]).tolist()
 
         df_train = self.df_train
-        test_size = self.test_size
         minmax = self.minmax
 
         pbar = tqdm(range(epoch), desc="train loop")
@@ -206,14 +203,21 @@ class MLUtil:
         return deep_future[-test_size:]
 
     def test_lstm(self):
-        self.load_data("./dataset/GOOG-year.csv")
+        test_size = 30
+        simulation_size = 5
+        self.load_data(
+            "./dataset/GOOG-year.csv",
+            test_size=test_size,
+            simulation_size=simulation_size,
+        )
         results = []
-        for i in range(self.simulation_size):
+
+        for i in range(simulation_size):
             logger.info("simulation %d" % (i + 1))
-            results.append(self.train_lstm())
+            results.append(self.train_lstm(test_size=test_size))
 
         accuracies = [
-            self.calculate_accuracy(self.df["Close"].iloc[-self.test_size :].values, r)
+            self.calculate_accuracy(self.df["Close"].iloc[-test_size:].values, r)
             for r in results
         ]
 
@@ -221,7 +225,7 @@ class MLUtil:
         for no, r in enumerate(results):
             plt.plot(r, label="forecast %d" % (no + 1))
         plt.plot(
-            self.df["Close"].iloc[-self.test_size :].values,
+            self.df["Close"].iloc[-test_size:].values,
             label="true trend",
             c="black",
         )
