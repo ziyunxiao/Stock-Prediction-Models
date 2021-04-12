@@ -6,3 +6,7 @@ seaborn
 pandas
 sklearn
 tqdm
+pandas_datareader
+keras
+yahoo_fin
+tensorflow
